@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cài Đặt Tài Khoản</title>
+  <link rel="stylesheet" href="../css/setting.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <a href="/html/chat.html" class="back-button">← Quay lại Chat</a>
+    <h2>Cài Đặt Tài Khoản</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="openTab('info')">Thông tin tài khoản</button>
+      <button class="tab" onclick="openTab('password')">Đổi mật khẩu</button>
+    </div>
+
+    <div id="infoTab" class="tab-content active">
+      <h3>Thông Tin Cá Nhân</h3>
+      <div class="profile-pic">
+        <img id="avatarPreview" src="/images/default-avatar.png" alt="Avatar" />
+        <input type="file" id="avatarInput" accept="image/*" />
+        <label for="avatarInput">Chọn ảnh <span id="fileName">Chưa chọn</span></label>
+        <button class="btn" onclick="uploadAvatar()">Thay Đổi Ảnh Đại Diện</button>
+      </div>
+
+      <div class="form-group">
+        <label>Tên Đăng Nhập</label>
+        <input type="text" id="username" />
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" />
+      </div>
+
+      <div class="form-group">
+        <label>Xác Nhận Mật Khẩu</label>
+        <input type="password" id="confirmPassword" placeholder="Nhập mật khẩu để xác nhận" />
+        <button class="btn save-btn" onclick="saveInfo()">Lưu Thay Đổi</button>
+      </div>
+    </div>
+
+    <div id="passwordTab" class="tab-content">
+      <h3>Đổi Mật Khẩu</h3>
+      <div class="form-group">
+        <label>Mật Khẩu Hiện Tại</label>
+        <input type="password" id="currentPassword" placeholder="Nhập mật khẩu hiện tại" />
+      </div>
+      <div class="form-group">
+        <label>Mật Khẩu Mới</label>
+        <input type="password" id="newPassword" placeholder="Nhập mật khẩu mới" />
+      </div>
+      <div class="form-group">
+        <label>Xác Nhận Mật Khẩu Mới</label>
+        <input type="password" id="confirmNewPassword" placeholder="Xác nhận mật khẩu mới" />
+        <button class="btn save-btn" onclick="changePassword()">Đổi Mật Khẩu</button>
+      </div>
+    </div>
+
+    <div class="section account-actions">
+      <h3>Hành Động Tài Khoản</h3>
+      <button class="btn logout-btn" onclick="logout()">Đăng Xuất</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentUser = null;
+
+    // Hàm khởi tạo người dùng và duy trì trạng thái online
+    async function initUser() {
+      try {
+        const res = await fetch('/auth/me', { credentials: 'include' });
+        if (!res.ok) {
+          console.error('Not logged in, redirecting to login page');
+          window.location.href = '/html/login.html';
+          return;
+        }
+        currentUser = await res.json();
+        document.getElementById('username').value = currentUser.username;
+        document.getElementById('email').value = currentUser.email || '';
+        // document.getElementById('avatarPreview').src = currentUser.avatarUrl || '/images/default-avatar.png';
+        // Sửa đổi phần này
+        const avatarPreview = document.getElementById('avatarPreview');
+        if (currentUser.avatarUrl && currentUser.avatarUrl !== 'undefined' && !currentUser.avatarUrl.includes('undefined')) {
+          avatarPreview.src = currentUser.avatarUrl;
+          // Thêm xử lý lỗi khi tải ảnh
+          avatarPreview.onerror = function() {
+            this.src = '/images/default-avatar.png';
+            console.log('Lỗi tải ảnh đại diện, sử dụng ảnh mặc định');
+          };
+        } else {
+          avatarPreview.src = '/images/default-avatar.png';
+        }
+        // Gửi sự kiện userConnected để duy trì trạng thái online
+        socket.emit('userConnected', currentUser.username);
+        console.log(`Sent userConnected for ${currentUser.username}`); // Debug log
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin người dùng:', error);
+        window.location.href = '/html/login.html';
+      }
+    }
+
+    // Hàm lưu thông tin cài đặt
+    async function saveInfo() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('confirmPassword').value;
+      const newUsername = document.getElementById('username').value;
+      if (!password) {
+        return alert("Vui lòng nhập mật khẩu để xác nhận");
+      }
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('newUsername', newUsername);
+
+      // Lấy username hiện tại
+      const resCurrent = await fetch('/auth/me', { credentials: 'include' });
+      if (!resCurrent.ok) return alert('Không lấy được thông tin người dùng');
+      const currentUser = await resCurrent.json();
+      const oldUsername = currentUser.username;
+
+      try {
+        const res = await fetch('/auth/update-info', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          // Gửi sự kiện updateUsername nếu username thay đổi
+          if (newUsername && oldUsername !== newUsername) {
+            socket.emit('updateUsername', { oldUsername, newUsername });
+            console.log(`Sent updateUsername: ${oldUsername} -> ${newUsername}`); // Debug log
+          }
+          // Yêu cầu làm mới danh sách nhóm
+          socket.emit('requestGroups');
+          alert(data.message || 'Đã lưu thay đổi');
+          document.getElementById('confirmPassword').value = '';
+          // Cập nhật currentUser
+          currentUser.username = newUsername;
+        } else {
+          alert(data.message || 'Lỗi khi lưu thay đổi');
+        }
+      } catch (error) {
+        console.error('Lỗi khi lưu thông tin:', error);
+        alert('Lỗi khi lưu thông tin!');
+      }
+    }
+
+    // Hàm đổi mật khẩu
+    async function changePassword() {
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirm = document.getElementById('confirmNewPassword').value;
+
+      if (newPassword !== confirm) return alert('Mật khẩu xác nhận không khớp');
+
+      try {
+        const res = await fetch('/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword }),
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || 'Đã đổi mật khẩu');
+          document.getElementById('currentPassword').value = '';
+          document.getElementById('newPassword').value = '';
+          document.getElementById('confirmNewPassword').value = '';
+        } else {
+          alert(data.message || 'Lỗi khi đổi mật khẩu');
+        }
+      } catch (error) {
+        console.error('Lỗi khi đổi mật khẩu:', error);
+        alert('Lỗi khi đổi mật khẩu!');
+      }
+    }
+
+    // Hàm đăng xuất
+    async function logout() {
+      try {
+        await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+        window.location.href = '/html/login.html';
+      } catch (error) {
+        console.error('Lỗi khi đăng xuất:', error);
+        window.location.href = '/html/login.html';
+      }
+    }
+
+    // Hàm tải ảnh đại diện
+    async function uploadAvatar() {
+      const file = document.getElementById('avatarInput').files[0];
+      if (!file) return alert("Vui lòng chọn ảnh trước khi tải lên");
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      try {
+        const res = await fetch('/auth/update-avatar', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok && data.avatarUrl) {
+          const newUrl = data.avatarUrl + `?t=${Date.now()}`;
+          document.getElementById('avatarPreview').src = newUrl;
+          alert(data.message || 'Đã cập nhật ảnh đại diện');
+        } else {
+          alert(data.message || 'Lỗi khi cập nhật ảnh đại diện');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải ảnh đại diện:', error);
+        alert('Lỗi khi tải ảnh đại diện!');
+      }
+    }
+
+    // Hàm mở tab
+    function openTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(tab + 'Tab').classList.add('active');
+      document.querySelector(`[onclick="openTab('${tab}')"]`).classList.add('active');
+    }
+
+    // Xử lý chọn ảnh đại diện
+    document.getElementById('avatarInput').addEventListener('change', function () {
+      document.getElementById('fileName').textContent = this.files[0]?.name || 'Chưa chọn';
+      if (this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById('avatarPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(this.files[0]);
+      }
+    });
+
+    // Khởi tạo khi tải trang
+    initUser();
+  </script>
+</body>
+
+</html>

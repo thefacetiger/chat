@@ -1,0 +1,166 @@
+/* ---------- Reset & Layout ---------- */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a2e;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background-color: #1a1a2e;
+    padding: 20px;
+    border-radius: 10px;
+    width: 700px;
+    max-height: fit-content;
+    margin: auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h3 {
+    text-align: center;
+    color: #00aaff;
+    margin-bottom: 10px;
+}
+
+.section {
+    margin-bottom: 20px;
+}
+
+/* ---------- Tabs ---------- */
+.tabs {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.tab {
+    background-color: #37486b;
+    /* background-color: #1a1a2e; */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: #ccc;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.tab:hover {
+    background-color: #4c5c7a;
+    color: #fff;
+}
+
+.tab.active {
+    background-color: #00c8ff;
+    color: #000;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* ---------- Form Elements ---------- */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #2e3a5e;
+    border-radius: 5px;
+    background-color: #2e3a5e;
+    color: #ffffff;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.form-group input[readonly] {
+    background-color: #1e2a44;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+    background-color: #00aaff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: #ffffff;
+    cursor: pointer;
+    display: block;
+    margin-top: 10px;
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.save-btn {
+    background-color: #28a745;
+}
+
+.logout-btn {
+    background-color: #dc3545;
+}
+
+/* ---------- Avatar ---------- */
+.profile-pic {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.profile-pic img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-pic input[type="file"] {
+    display: none;
+}
+
+.profile-pic label {
+    color: #00aaff;
+    cursor: pointer;
+}
+
+.profile-pic span {
+    color: #999;
+}
+
+/* ---------- Back Button ---------- */
+.back-button {
+    text-decoration: none;
+    color: white;
+    display: inline-block;
+    margin-bottom: 15px;
+}
